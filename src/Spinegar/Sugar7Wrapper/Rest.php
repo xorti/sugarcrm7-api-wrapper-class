@@ -85,6 +85,29 @@ class Rest {
   }
 
   /**
+  * Function: setPlatform()
+  * Parameters:   $value = URL for the REST API
+  * Description:  Set $platform
+  * Returns:  none
+  */
+  public function setPlatform($platform)
+  {
+    $this->client->setUrl($platform);
+
+    return $this;
+  }
+
+  /**
+  * Function: getPlatform()
+  * Description:  Get $platform
+  * Returns:  returns value if true otherwise FALSE
+  */
+  public function getPlatform()
+  {
+    return $this->client->getPlatform();
+  }
+
+  /**
   * Function: setUsername()
   * Parameters:   $value = Username for the REST API User    
   * Description:  Set $username
@@ -106,6 +129,54 @@ class Rest {
   public function setPassword($value)
   {
     $this->client->setPassword($value);
+
+    return $this;
+  }
+
+  /**
+   * Function: getToken()
+   * Parameters:   none
+   * Description:  Get the OAuth 2.0 token
+   * Returns:  The token string
+   */
+  public function getToken()
+  {
+    return $this->client->getToken();
+  }
+
+  /**
+   * Function: setToken()
+   * Parameters:   none
+   * Description:  Set the OAuth 2.0 token
+   * Returns:  returns $this
+   */
+  public function setToken($token)
+  {
+    $this->client->setToken($token);
+
+    return $this;
+  }
+
+  /**
+   * Function: getRefreshToken()
+   * Parameters:   none
+   * Description:  Get the OAuth 2.0 refresh token
+   * Returns:  The refresh token string
+   */
+  public function getRefreshToken()
+  {
+    return $this->client->getRefreshToken();
+  }
+
+  /**
+   * Function: setRefreshToken()
+   * Parameters:   none
+   * Description:  Set the OAuth 2.0 refresh token
+   * Returns:  returns $this
+   */
+  public function setRefreshToken($refreshToken)
+  {
+    $this->client->setRefreshToken($refreshToken);
 
     return $this;
   }
