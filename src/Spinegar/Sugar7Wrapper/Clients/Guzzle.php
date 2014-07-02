@@ -24,6 +24,12 @@ class Guzzle implements ClientInterface {
   private $url;
 
   /**
+  * Variable: $platform
+  * Description:  SugarCRM client platform.
+  */
+  private $platform = 'api';
+
+  /**
   * Variable: $username
   * Description:  A SugarCRM User. 
   */
@@ -87,7 +93,7 @@ class Guzzle implements ClientInterface {
         'client_secret' => '',
         'username'      => $this->username,
         'password'      => $this->password,
-        'platform'      => 'api',
+        'platform'      => $this->platform,
       );
     } else {
       $parameters = array(
@@ -191,6 +197,33 @@ class Guzzle implements ClientInterface {
   public function getUrl()
   {
     return $this->url;
+  }
+
+  /**
+   * Function: setPlatform()
+   * Parameters:   $value SugarCRM platform identifier
+   * Description:  Set $platform
+   * Returns:  returns FALSE is falsy, otherwise TRUE
+   */
+  public function setPlatform($value)
+  {
+    if(!$value)
+      return false;
+
+    $this->platform = $value;
+
+    return true;
+  }
+
+  /**
+   * Function: getPlatform()
+   * Parameters:   none
+   * Description:  Get $platform
+   * Returns:  returns $platform value
+   */
+  public function getPlatform()
+  {
+    return $this->platform;
   }
 
   /**
