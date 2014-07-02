@@ -3,6 +3,7 @@
 use Guzzle\Common\Event;
 use Guzzle\Http\Client;
 use Guzzle\Http\Query;
+use Guzzle\Http\Exception\ClientErrorResponseException;
 
 /**
  * SugarCRM 7 Rest Client
@@ -41,6 +42,12 @@ class Guzzle implements ClientInterface {
   protected $token;
 
   /**
+   * Variable: $refresh_token
+   * Description:  OAuth 2.0 refresh token
+   */
+  protected $refresh_token;
+
+  /**
   * Variable: $client
   * Description:  Guzzle Client
   */
@@ -66,19 +73,32 @@ class Guzzle implements ClientInterface {
   
   /**
   * Function: connect()
-  * Parameters:   none    
+  * Parameters:   $refreshToken TRUE it will refresh the access token.
+  *                             FALSE will use standard username/password authentication.
   * Description:  Authenticate and set the oAuth 2.0 token
   * Returns:  TRUE on login success, otherwise FALSE
   */
-  public function connect()
+  public function connect($refreshToken = false)
   {
-    $request = $this->client->post('oauth2/token', null, array(
-        'grant_type' => 'password',
-        'client_id' => 'sugar',
-        'username' => $this->username,
-        'password' => $this->password,
-        'platform' => 'api',
-    ));
+    if (!$refreshToken) {
+      $parameters = array(
+        'grant_type'    => 'password',
+        'client_id'     => 'sugar',
+        'client_secret' => '',
+        'username'      => $this->username,
+        'password'      => $this->password,
+        'platform'      => 'api',
+      );
+    } else {
+      $parameters = array(
+        'grant_type'    => 'refresh_token',
+        'client_id'     => 'sugar',
+        'client_secret' => '',
+        'refresh_token' => $this->refresh_token,
+      );
+    }
+
+    $request = $this->client->post('oauth2/token', null, $parameters);
 
     $result = $request->send()->json();
    
@@ -87,12 +107,33 @@ class Guzzle implements ClientInterface {
 
     $token = $result['access_token'];
     self::setToken($token);
-    
-    $this->client->getEventDispatcher()->addListener('request.before_send', function(Event $event) use ($token) {
-      $event['request']->setHeader('OAuth-Token', $token);
-    });
-    
+
+    $refreshToken = $result['refresh_token'];
+    self::setRefreshToken($refreshToken);
+
     return true;
+  }
+
+  /**
+   * Function: reconnect()
+   * Parameters:   none
+   * Description:  Re-establish a valid connection if token no longer valid.
+   * Returns:  TRUE on connection success, otherwise FALSE
+   */
+  protected function reconnect() {
+
+      if (!$this->check()) {
+          return self::connect();
+      }
+
+      try{
+          $request = $this->get('ping');
+          $response = $request->send()->json();
+      } catch (ClientErrorResponseException $e) {
+          if ($e->getResponse()->getStatusCode() == 401) {
+              return self::connect(true);
+          }
+      }
   }
 
   /**
@@ -185,6 +226,17 @@ class Guzzle implements ClientInterface {
   }
 
   /**
+   * Function: getToken()
+   * Parameters:   none
+   * Description:  Get $token
+   * Returns:  returns token string
+   */
+  public function getToken()
+  {
+    return $this->token;
+  }
+
+  /**
   * Function: setToken()
   * Parameters:   none    
   * Description:  Set $token
@@ -196,6 +248,40 @@ class Guzzle implements ClientInterface {
       return false;
 
     $this->token = $value;
+
+    $this->client->getEventDispatcher()->addListener(
+      'request.before_send',
+      function (Event $event) use ($value) {
+        $event['request']->setHeader('OAuth-Token', $value);
+      }
+    );
+
+    return true;
+  }
+
+  /**
+   * Function: getToken()
+   * Parameters:   none
+   * Description:  Get $token
+   * Returns:  returns token string
+   */
+  public function getRefreshToken()
+  {
+    return $this->refresh_token;
+  }
+
+  /**
+   * Function: setToken()
+   * Parameters:   none
+   * Description:  Set $token
+   * Returns:  returns FALSE is falsy, otherwise TRUE
+   */
+  public function setRefreshToken($value)
+  {
+    if(!$value)
+      return false;
+
+    $this->refresh_token = $value;
 
     return true;
   }
@@ -210,8 +296,7 @@ class Guzzle implements ClientInterface {
   */
   public function get($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
+    self::reconnect();
 
     $request = $this->client->get($endpoint);
 
@@ -241,8 +326,7 @@ class Guzzle implements ClientInterface {
   */
   public function getFile($endpoint, $destinationFile, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
+    self::reconnect();
 
     $request = $this->client->get($endpoint);
 
@@ -273,8 +357,7 @@ class Guzzle implements ClientInterface {
   */
   public function post($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
+    self::reconnect();
 
     $request = $this->client->post($endpoint, null, json_encode($parameters));
     $response = $request->send()->json();
@@ -295,8 +378,7 @@ class Guzzle implements ClientInterface {
   */
   public function put($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
+    self::reconnect();
 
     $request = $this->client->put($endpoint, null, json_encode($parameters));
     $response = $request->send()->json();
@@ -316,8 +398,7 @@ class Guzzle implements ClientInterface {
   */
   public function delete($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
+    self::reconnect();
 
     $request = $this->client->delete($endpoint);
     $response = $request->send()->json();
