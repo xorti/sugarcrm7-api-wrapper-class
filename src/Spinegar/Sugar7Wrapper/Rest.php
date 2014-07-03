@@ -92,7 +92,7 @@ class Rest {
   */
   public function setPlatform($platform)
   {
-    $this->client->setUrl($platform);
+    $this->client->setPlatform($platform);
 
     return $this;
   }
